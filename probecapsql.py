@@ -15,7 +15,7 @@ con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 cur = con.cursor()
 try:
     cur.execute('CREATE DATABASE ' + database)
-    cur.execute("""CREATE USER probecap WITH PASSWORD 'b4ed23e8bd3909b7b01fddeee4f50b2d';""")
+    cur.execute("""CREATE USER probecap WITH PASSWORD 'pass';""")
     cur.execute("""ALTER USER probecap WITH LOGIN;""")
     cur.execute("""ALTER USER probecap WITH SUPERUSER;""")
     cur.execute('CREATE TABLE IF NOT EXISTS station(id serial not null UNIQUE,mac macaddr not null,firstSeen timestamp without time zone not null,lastSeen timestamp without time zone,PRIMARY KEY(mac));')
