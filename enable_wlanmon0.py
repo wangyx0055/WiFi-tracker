@@ -6,10 +6,10 @@ Created on Feb 13, 2016
 #!/usr/bin/env python
 
 import logging
-logging.getLogger("scapy.runtime").setLevel(logging.ERROR) # Shut up Scapy
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR) # descrease error logging from Scapy
 
 from scapy.all import *
-conf.verb = 0 # Scapy I thought I told you to shut up
+conf.verb = 1 # swith scapy error logging to minimum
 import os
 import sys
 import time
@@ -21,7 +21,7 @@ import socket
 import struct
 import fcntl
 
-# Console colors
+# declaring console colors
 W  = '\033[0m'  # white (normal)
 R  = '\033[31m' # red
 G  = '\033[32m' # green
@@ -33,7 +33,7 @@ GR = '\033[37m' # gray
 T  = '\033[93m' # tan
 
 def parse_args():
-    #Create the arguments
+    #Declaring arguments
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-i", "--interface", help="Choose monitor mode interface. By default script will find the most powerful interface and starts monitor mode on it. Example: -i mon5")
@@ -41,7 +41,6 @@ def parse_args():
     parser.add_argument("-m", "--maximum", help="Choose the maximum number of SSIDs. List of SSIDs will be emptied and re-populated after hitting the limit. Example: -m 5")
     
     return parser.parse_args()
-
 
 ########################################
 # Begin interface info and manipulation
@@ -94,7 +93,7 @@ def get_iface(interfaces):
         for interface in interfaces:
             return interface
 
-    # Find most powerful interface
+    # Find strongest interface with most wifi networks found
     for iface in interfaces:
         count = 0
         proc = Popen(['iwlist', iface, 'scan'], stdout=PIPE, stderr=DN)
@@ -113,6 +112,7 @@ def get_iface(interfaces):
             print '    Starting monitor mode on '+G+interface+W
             return interface
 
+#starting monitor mode on selected wlan interface
 def start_mon_mode(interface):
     print '['+G+'+'+W+'] Starting monitor mode off '+G+interface+W
     try:
@@ -122,7 +122,7 @@ def start_mon_mode(interface):
         return interface
     except Exception:
         sys.exit('['+R+'-'+W+'] Could not start monitor mode')
-
+#disabling monitor mode on wlan interface  
 def remove_mon_iface(mon_iface):
     os.system('ifconfig %s down' % mon_iface)
     os.system('iwconfig %s mode managed' % mon_iface)
@@ -142,7 +142,7 @@ def mon_mac(mon_iface):
 # End of interface info and manipulation
 ########################################
 
-
+#hopping between channels to capture probes from different channels
 def channel_hop(mon_iface, args):
     '''
     First time it runs through the channels it stays on each channel for 5 seconds
@@ -210,7 +210,7 @@ def cb(pkt):
     global clients_APs, APs
 
     # return these if's keeping clients_APs the same or just reset clients_APs?
-    # I like the idea of the tool repopulating the variable more
+    # I like the idea of the tool re-populating the variable more
     if args.maximum:
         if args.noupdate:
             if len(clients_APs) > int(args.maximum):
@@ -329,9 +329,10 @@ if __name__ == "__main__":
     signal(SIGINT, stop)
 
     try:
-       sniff(iface=mon_iface, store=0, prn=cb)
+        sniff(iface=mon_iface, store=0, prn=cb)
     except Exception as msg:
         remove_mon_iface(mon_iface)
         os.system('service network-manager restart')
         print '\n['+R+'!'+W+'] Closing'
         sys.exit(0)
+        
