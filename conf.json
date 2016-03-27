@@ -1,6 +1,6 @@
 {
 "host":"localhost",
-"user":"postgres",
-"password":"root",
-"database":"postgres"
+"user":"probecap",
+"password":"pass",
+"database":"wifi"
 }

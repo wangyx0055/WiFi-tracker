@@ -8,6 +8,9 @@ import json
 import psycopg2
 import datetime
 from io import open
+import telegram
+import manuf
+
 MGMT_TYPE = 0x0
 PROBE_SUBTYPE = 0x04
 
@@ -36,7 +39,8 @@ class Handler(object):
         #If the packet is not a management packet ignore it
         if not pkt.type == MGMT_TYPE:
             return    
-        
+        bot = telegram.Bot(token='203410933:AAG6avZhedGbVsGZjgEa1x5u-DuNZ3BcjTE')
+
         #Extract the payload from the packet
         payload = buffer(str(pkt.payload))
         #Carve out just the header
@@ -66,10 +70,18 @@ class Handler(object):
         print(r)
         #If never seen, add the station to the database
         if r == None:
-            cur.execute("""Insert into station(mac,firstSeen,lastSeen) VALUES(%s,current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;""",(encodeMac(srcAddr),))
-            r = cur.fetchone()
-            suid = r
-        #If seen, update the last seen time of the station 
+            #If seen, update the last seen time of the station 
+            bot.getMe()
+            updates = bot.getUpdates()
+            print [u.message.text for u in updates]
+            chat_id = bot.getUpdates()[-1].message.chat_id
+            bot.sendMessage(chat_id=chat_id, text="ALERT! Wifi perimeter violation " + (r))
+            def get_manuf(self, r):
+                model = self.get_all(r).manuf
+            
+                cur.execute("""Insert into station(mac,model,firstSeen,lastSeen) VALUES(%s,%s,current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;""",(encodeMac(srcAddr),model,))
+                r = cur.fetchone()
+                suid = r
         else:
             suid,lastSeen = r
             cur.execute('Update station set lastSeen = %s where id = %s',(datetime.datetime.now(),suid,))
@@ -164,6 +176,6 @@ if __name__ == "__main__":
     iface = sys.argv[1]
     with open(sys.argv[2]) as fin:
         conf = json.load(fin)            
-    
+    oui = manuf.MacParser.refresh(manuf)
     handler = Handler(conf)                
     sniff(iface=iface,prn=handler,store=0)
