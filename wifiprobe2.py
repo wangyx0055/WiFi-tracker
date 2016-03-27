@@ -9,7 +9,8 @@ import psycopg2
 import datetime
 from io import open
 import telegram
-import manuf
+import manuf 
+import os
 
 MGMT_TYPE = 0x0
 PROBE_SUBTYPE = 0x04
@@ -67,21 +68,16 @@ class Handler(object):
         
         cur.execute('Select id,lastseen from station where mac = %s;',(encodeMac(srcAddr),))
         r = cur.fetchone()
-        print(r)
+        mac = encodeMac(srcAddr)
         #If never seen, add the station to the database
         if r == None:
             #If seen, update the last seen time of the station 
-            bot.getMe()
-            updates = bot.getUpdates()
-            print [u.message.text for u in updates]
-            chat_id = bot.getUpdates()[-1].message.chat_id
-            bot.sendMessage(chat_id=chat_id, text="ALERT! Wifi perimeter violation " + (r))
-            def get_manuf(self, r):
-                model = self.get_all(r).manuf
-            
-                cur.execute("""Insert into station(mac,model,firstSeen,lastSeen) VALUES(%s,%s,current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;""",(encodeMac(srcAddr),model,))
-                r = cur.fetchone()
-                suid = r
+            getmac = manuf.MacParser()
+            model = getmac.get_manuf(mac)
+            print model,mac
+            cur.execute("""Insert into station(mac, model, firstSeen,lastSeen) VALUES(%s, %s, current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;""",(encodeMac(srcAddr),model,))
+            r = cur.fetchone()
+            suid = r
         else:
             suid,lastSeen = r
             cur.execute('Update station set lastSeen = %s where id = %s',(datetime.datetime.now(),suid,))
@@ -134,6 +130,7 @@ class Handler(object):
                 cur.execute('Insert into ssid (name) VALUES(%s) returning id;',(ssid,))
                 r = cur.fetchone()
                 ssuid, = r
+                print ssid
                 cur.close()    
                 conn.commit()
             else:
@@ -144,7 +141,7 @@ class Handler(object):
             ssuid = None
             
             
-        #Query the database for a beacon/probe by the station
+        #Query the database for a probe by the station
         #if it was observed in the past 5 minutes,
         #don't add this one to the database                
         cur = conn.cursor()
@@ -176,6 +173,5 @@ if __name__ == "__main__":
     iface = sys.argv[1]
     with open(sys.argv[2]) as fin:
         conf = json.load(fin)            
-    oui = manuf.MacParser.refresh(manuf)
     handler = Handler(conf)                
     sniff(iface=iface,prn=handler,store=0)
