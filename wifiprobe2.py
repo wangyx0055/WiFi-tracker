@@ -21,6 +21,9 @@ WLAN_MGMT_ELEMENT = "<BB"
 TO_DS_BIT = 2**9
 FROM_DS_BIT = 2**10
 
+updateoui = manuf.MacParser()
+updateoui.refresh()
+
 def encodeMac(s):
     return ''.join(( '%.2x' % ord(i) for i in s ))
 
@@ -69,12 +72,19 @@ class Handler(object):
         cur.execute('Select id,lastseen from station where mac = %s;',(encodeMac(srcAddr),))
         r = cur.fetchone()
         mac = encodeMac(srcAddr)
-        #If never seen, add the station to the database
+        #If mac never seen
         if r == None:
             #If seen, update the last seen time of the station 
             getmac = manuf.MacParser()
             model = getmac.get_manuf(mac)
             print model,mac
+            #sending alert when new Mac is found
+            bot = telegram.Bot(token='203410933:AAG6avZhedGbVsGZjgEa1x5u-DuNZ3BcjTE')
+            bot.getMe()
+            bot.getUpdates()
+            chat_id = bot.getUpdates()[-1].message.chat_id
+            bot.sendMessage(chat_id=chat_id, text="ALERT! Wifi perimeter violation Mac addrs - " + mac )
+            #insert new mac into DB
             cur.execute("""Insert into station(mac, model, firstSeen,lastSeen) VALUES(%s, %s, current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;""",(encodeMac(srcAddr),model,))
             r = cur.fetchone()
             suid = r
