@@ -80,10 +80,9 @@ class Handler(object):
             print model,mac
             #sending alert when new Mac is found
             bot = telegram.Bot(token='203410933:AAG6avZhedGbVsGZjgEa1x5u-DuNZ3BcjTE')
-            bot.getMe()
-            bot.getUpdates()
-            chat_id = bot.getUpdates()[-1].message.chat_id
-            bot.sendMessage(chat_id=chat_id, text="ALERT! Wifi perimeter violation Mac addrs - " + mac )
+            updates = bot.getUpdates()
+            chat_id = '199913115'
+            bot.sendMessage(chat_id=chat_id, text='ALERT! Wifi perimeter violation Mac %s Model %s' % (mac,model,))
             #insert new mac into DB
             cur.execute("""Insert into station(mac, model, firstSeen,lastSeen) VALUES(%s, %s, current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;""",(encodeMac(srcAddr),model,))
             r = cur.fetchone()
