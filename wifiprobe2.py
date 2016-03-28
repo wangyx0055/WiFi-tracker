@@ -11,6 +11,18 @@ from io import open
 import telegram
 import manuf 
 import os
+import enable
+
+# Console colors
+W  = '\033[0m'  # white (normal)
+R  = '\033[31m' # red
+G  = '\033[32m' # green
+O  = '\033[33m' # orange
+B  = '\033[34m' # blue
+P  = '\033[35m' # purple
+C  = '\033[36m' # cyan
+GR = '\033[37m' # gray
+T  = '\033[93m' # tan
 
 MGMT_TYPE = 0x0
 PROBE_SUBTYPE = 0x04
@@ -179,8 +191,17 @@ class Handler(object):
                 conn.rollback()
 
 if __name__ == "__main__":
+    if os.geteuid():
+        sys.exit('['+R+'-'+W+'] Please run as root')
     iface = sys.argv[1]
     with open(sys.argv[2]) as fin:
         conf = json.load(fin)            
-    handler = Handler(conf)                
-    sniff(iface=iface,prn=handler,store=0)
+    try:
+        handler = Handler(conf)                
+        sniff(iface=iface,prn=handler,store=0)
+    except Exception, msg:
+        print msg
+        enable.remove_mon_iface(iface)
+        os.system('service network-manager restart')
+        print '\n['+R+'!'+W+'] Disabling monitor mode due to error'
+        sys.exit(0)

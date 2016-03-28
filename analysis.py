@@ -4,8 +4,6 @@ import json
 import os
 import math
 import matplotlib.pyplot as plt
-
-
 import calendar
 from datetime import datetime, timedelta
 
