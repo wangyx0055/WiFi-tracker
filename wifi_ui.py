@@ -1,6 +1,26 @@
 import sys				#Always there
 from PyQt4 import QtGui, QtCore 	#QtGui - imports GUI; Qtcore - imports event handling (to make buttons do things)
-					
+import wifi_mon
+import json					
+import os
+import logging
+from wifi_mon import iwconfig
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR) # Shut up Scapy
+from scapy.all import *
+conf.verb = 0 # Scapy I thought I told you to shut up
+import os
+import sys
+import time
+from threading import Thread, Lock
+from subprocess import Popen, PIPE
+from os import devnull
+from subprocess import call
+from signal import SIGINT, signal
+import argparse
+import socket
+import struct
+import fcntl
+import probe_scan
 
 class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow (also QWidget can be used); Window is an object
 
@@ -77,29 +97,47 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 
 
 	# ===== Methods ===== 
-
-
+	
 	def wifi_monitor(self):						#Method for closing application
-		pass
-
+		try: 
+			startmon = wifi_mon.start_mon_mode(iface) 
+			QtGui.QMessageBox.information(self, "Enabling Monitor Mode", "Monitor mode started on strongest interface %s"% (iface))
+		except:
+			QtGui.QMessageBox.information(self, "Enabling Monitor Mode", "No wireless interfaces found, bring one up and try again")
+	
 	def probe_scan(self):						#Method for closing application
-		pass
-
-	def close_application(self):					#Method for closing application
-									#Pop up question box with yes/no option; parameters: self, Wwindow title, Question, Yes or No
-		choice = QtGui.QMessageBox.question(self, "Exit Application", "Would you like to exit the application?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
-			
+		choice = QtGui.QMessageBox.question(self, "Start sniffing", "Start collecting probes on interface %s?"% (iface), QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 		if choice == QtGui.QMessageBox.Yes:			#if/else statement - if yes
-			print("Application was terminated by user.")	#Sends a message before quiting (in cmd & loggs)
+			print("Starting probes collection")	#Sends a message before quiting (in cmd & loggs)
+			conf = json.load(conf.json)
+			startscan = probe_scan.Handler(conf)
+			startscan2 = sniff(iface=iface,prn=startscan,store=0,timeout=300)
+		else:							#if/else statement - else (No)
+			pass						#pass - nothing happens
+
+		
+	def close_application(self):					#Method for closing application
+										#Pop up question box with yes/no option; parameters: self, Wwindow title, Question, Yes or No
+		choice = QtGui.QMessageBox.question(self, "Exit Application", "Would you like to exit the application and Disable Monitor Mode?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+		if choice == QtGui.QMessageBox.Yes:			#if/else statement - if yes
+			print("Disabling monitor mode.")	#Sends a message before quiting (in cmd & loggs)
+			ifacemon = str(iface + 'mon')
+			wifi_mon.remove_mon_iface(iface)
+			os.system('service network-manager restart')
+			QtGui.QMessageBox.information(self, "Disabling Monitor Mode", "Disabled Monitor mode on %s"% (iface,))
 			sys.exit()					#Exit everything				
 		else:							#if/else statement - else (No)
 			pass						#pass - nothing happens
 
-	
 
+monitors, interfaces = wifi_mon.iwconfig()
+iface = wifi_mon.get_iface(interfaces)
+	
+	
 def run():							# Main Running Method (Function) - run()
+	if os.geteuid():
+		sys.exit('Please run as root')
 	app = QtGui.QApplication(sys.argv)			# App definition (defines application); sys.argv allows to call
-								# this application from command line and pass arguments through commandline.
 	GUI = Window()						# NO DESCRIPTION - This runs a window object (details of the object are above)
 	sys.exit(app.exec_())					# NO DESCRIPTION
 

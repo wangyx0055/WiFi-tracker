@@ -1,5 +1,5 @@
 import logging
-from enable import remove_mon_iface, get_mon_iface, get_iface, start_mon_mode,\
+from wifi_mon import remove_mon_iface, get_mon_iface, get_iface, start_mon_mode,\
     iwconfig
 from dbus.proxies import Interface
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
@@ -130,7 +130,7 @@ def iwconfig():
                 print '    Starting monitor mode on '+G+interface+W
                 return interface    
         
-    #starting monitor mode on selected wlan interface
+    #starting monitor mode on selected wifi_mon interface
 def start_mon_mode(interface):
     print '['+G+'+'+W+'] Starting monitor mode off '+G+interface+W
     try:

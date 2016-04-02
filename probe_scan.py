@@ -11,7 +11,7 @@ from io import open
 import telegram
 import manuf 
 import os
-import enable
+import wifi_mon
 import gmplot
 
 # Console colors
@@ -190,14 +190,7 @@ class Handler(object):
             else:
                 cur.close()
                 conn.rollback()
-    def ploting(self):
-        conn = self.getDatabaseConnection()
-        cur = conn.cursor()
-        cur.execute('SELECT name,lat,long FROM ssid LIMIT 100')
-        coords = [item[0] for item in cur.fetchall()]
         
-        gmplot.gmap.plot(latitudes, longitudes, 'cornflowerblue', edge_width=10)
-
 if __name__ == "__main__":
     if os.geteuid():
         sys.exit('['+R+'-'+W+'] Please run as root')
@@ -209,7 +202,7 @@ if __name__ == "__main__":
         sniff(iface=iface,prn=handler,store=0)
     except Exception, msg:
         print msg
-        enable.remove_mon_iface(iface)
+        wifi_mon.remove_mon_iface(iface)
         os.system('service network-manager restart')
         print '\n['+R+'!'+W+'] Disabling monitor mode due to error'
         sys.exit(0)

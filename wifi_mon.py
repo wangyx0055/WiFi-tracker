@@ -106,12 +106,11 @@ def get_mon_iface(args):
         interface = get_iface(interfaces)
         monmode = start_mon_mode(interface)
         return monmode
-
 def iwconfig():
     monitors = []
     interfaces = {}
     try:
-        proc = Popen(['iwconfig'], stdout=PIPE, stderr=DN)
+        proc = Popen(['iwconfig'], stdout=PIPE)
     except OSError:
         sys.exit('['+R+'-'+W+'] Could not execute "iwconfig"')
     for line in proc.communicate()[0].split('\n'):
