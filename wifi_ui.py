@@ -31,7 +31,7 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		
 		super(Window, self).__init__()				#Super returnd parent object (which is QMainWindow);  () - Empty parameter
 		self.setGeometry(50, 50, 500, 300)			#Set the geometry of the window. (starting X; starting Y; width; length)
-		self.setWindowTitle("Probe Scanner Project")		#Set title of the window (Window name)
+		self.setWindowTitle("Wifi Probe Scanner Project")		#Set title of the window (Window name)
 		self.setWindowIcon(QtGui.QIcon('itb.png'))		#Set the image in the window name (doesn't seem to work in Linux)
 
 	# ===== Main Menu ===== 
@@ -109,9 +109,10 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		choice = QtGui.QMessageBox.question(self, "Start sniffing", "Start collecting probes on interface %s?"% (iface), QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 		if choice == QtGui.QMessageBox.Yes:			#if/else statement - if yes
 			print("Starting probes collection")	#Sends a message before quiting (in cmd & loggs)
-			conf = json.load(conf.json)
+			conf = json.load(open(conf.json))
+			handler = probe_scan.Handler(conf)                
 			startscan = probe_scan.Handler(conf)
-			startscan2 = sniff(iface=iface,prn=startscan,store=0,timeout=300)
+			sniff(iface=iface,prn=startscan,store=0,timeout=300)
 		else:							#if/else statement - else (No)
 			pass						#pass - nothing happens
 
