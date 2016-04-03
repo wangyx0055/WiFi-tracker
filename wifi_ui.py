@@ -5,6 +5,7 @@ import json
 import os
 import logging
 from wifi_mon import iwconfig
+from PyQt4.Qt import QWebView, QUrl
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR) # Shut up Scapy
 from scapy.all import *
 conf.verb = 0 # Scapy I thought I told you to shut up
@@ -33,7 +34,7 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 								#everytime a window object is made the init method runs; Core of the application is in __init__
 		
 		super(Window, self).__init__()				#Super returnd parent object (which is QMainWindow);  () - Empty parameter
-		self.setGeometry(50, 50, 800, 350)			#Set the geometry of the window. (starting X; starting Y; width; length)
+		self.setGeometry(50, 50, 1000, 700)			#Set the geometry of the window. (starting X; starting Y; width; length)
 		self.setWindowTitle("Wifi Probe Scanner Project")		#Set title of the window (Window name)
 		self.setWindowIcon(QtGui.QIcon('itb.png'))		#Set the image in the window name (doesn't seem to work in Linux)
 
@@ -93,7 +94,7 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		
 									#Button for Scanning Probes
 		self.progress = QtGui.QProgressBar(self)
-		self.progress.setGeometry(50, 160, 180, 20)
+		self.progress.setGeometry(50, 350, 600, 20)
 		
 		btn2 = QtGui.QPushButton("Launch Probe Scan", self)	#Defines a button with parameter name
 		btn2.clicked.connect(self.probe_scan)			#Defines an event (through .connect), event is Scanning Probes
@@ -110,8 +111,6 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		btn3.move(50, 260)					#Defines location of the button on the screen (starting X; starting Y)
 
 									#Button to generate maps from probes
-		self.progress2 = QtGui.QProgressBar(self)
-		self.progress2.setGeometry(50, 230, 180, 20)
 		btn4 = QtGui.QPushButton("Generate maps", self)	#Defines a button with parameter name (!!! WHY PASS SELF ???)
 		btn4.clicked.connect(self.mapplot)			#Defines an event (through .connect), event is Monitor Mode
 
@@ -147,19 +146,16 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 			while self.completed < 100:
 				self.completed += 0.0001
 				self.progress.setValue(self.completed)
-			conf = json.load(open(conf.json))
-			handler = probe_scan.Handler(conf)                
-			startscan = probe_scan.Handler(conf)
-			sniff(iface=iface,prn=startscan,store=0,timeout=300)
+			handler = probe_scan.Handler()                
+			sniff = probe_scan.sniff(iface=iface,prn=handler,store=0,timeout=300)
 		else:							#if/else statement - else (No)
 			pass						#pass - nothing happens
 	
 	def mapplot(self):
-		self.completed = 0
-		while self.completed < 100:
-			self.completed += 0.0001
-			self.progress2.setValue(self.completed)
-		pass	
+		web_page = QWebView(self)
+		web_page.setGeometry(450,50,500,500)
+		web_page.load(QUrl("file:///var/www/html/mymap7.html"))
+		web_page.show()									
 		
 	def close_application(self):					#Method for closing application
 										#Pop up question box with yes/no option; parameters: self, Wwindow title, Question, Yes or No
@@ -188,8 +184,8 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 
 monitors, interfaces = wifi_mon.iwconfig()
 iface = wifi_mon.get_iface(interfaces)
-
-	
+#with open('dbconf.json') as fin:
+#       dbconf = json.load(fin)    
 	
 def run():							# Main Running Method (Function) - run()
 	if os.geteuid():

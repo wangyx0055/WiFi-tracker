@@ -34,30 +34,28 @@ WLAN_MGMT_ELEMENT = "<BB"
 TO_DS_BIT = 2**9
 FROM_DS_BIT = 2**10
 
-updateoui = manuf.MacParser()
-updateoui.refresh()
+def Manufupdate(self):
+    updateoui = manuf.MacParser()
+    updateoui.refresh()
 
 def encodeMac(s):
     return ''.join(( '%.2x' % ord(i) for i in s ))
 
 class Handler(object):
-    def __init__(self,conf):
-        self.conf = conf
+    def __init__(self):
         self.conn = None
         
     def getDatabaseConnection(self):
     
         if self.conn == None:
-            self.conn = psycopg2.connect(**conf)
-            
+            self.conn = psycopg2.connect(database='wifi', user='probecap', host = 'localhost', password='pass')
         return self.conn
         
     def __call__(self,pkt):
         #If the packet is not a management packet ignore it
         if not pkt.type == MGMT_TYPE:
             return    
-        bot = telegram.Bot(token='203410933:AAG6avZhedGbVsGZjgEa1x5u-DuNZ3BcjTE')
-
+        
         #Extract the payload from the packet
         payload = buffer(str(pkt.payload))
         #Carve out just the header
@@ -92,10 +90,10 @@ class Handler(object):
             model = getmac.get_manuf(mac)
             print model,mac
             #sending alert when new Mac is found
-            bot = telegram.Bot(token='203410933:AAG6avZhedGbVsGZjgEa1x5u-DuNZ3BcjTE')
-            updates = bot.getUpdates()
-            chat_id = '199913115'
-            bot.sendMessage(chat_id=chat_id, text='ALERT! Wifi perimeter violation Mac %s Model %s' % (mac,model,))
+            #bot = telegram.Bot(token='203410933:AAG6avZhedGbVsGZjgEa1x5u-DuNZ3BcjTE')
+            #updates = bot.getUpdates()
+            #chat_id = '199913115'
+            #bot.sendMessage(chat_id=chat_id, text='ALERT! Wifi perimeter violation Mac %s Model %s' % (mac,model,))
             #insert new mac into DB
             cur.execute("""Insert into station(mac, model, firstSeen,lastSeen) VALUES(%s, %s, current_timestamp at time zone 'utc',current_timestamp at time zone 'utc') returning id;""",(encodeMac(srcAddr),model,))
             r = cur.fetchone()
@@ -106,7 +104,7 @@ class Handler(object):
         cur.close()
         conn.commit()
         
-        #If the packet subtype is not probe or beacon ignore the rest of it
+        #If the packet subtype is not probe
         isProbe = pkt.subtype == PROBE_SUBTYPE
         if not isProbe:
             return
@@ -169,6 +167,7 @@ class Handler(object):
         cur = conn.cursor()
         
         update = False
+        
         if isProbe:
             if ssuid is not None:
                 cur.execute('Select seen from probe left join ssid on probe.ssid=ssid.id where station = %s and ssid.id = %s order by seen desc limit 1;', (suid,ssuid,))
@@ -190,19 +189,15 @@ class Handler(object):
             else:
                 cur.close()
                 conn.rollback()
-        
+
+#bot = telegram.Bot(token='203410933:AAG6avZhedGbVsGZjgEa1x5u-DuNZ3BcjTE')
+
+
 if __name__ == "__main__":
-    if os.geteuid():
-        sys.exit('['+R+'-'+W+'] Please run as root')
-    iface = sys.argv[1]
-    with open(sys.argv[2]) as fin:
-        conf = json.load(fin)            
+    iface = 'wlan0'
     try:
-        handler = Handler(conf)                
+        handler = Handler()                
         sniff(iface=iface,prn=handler,store=0)
     except Exception, msg:
         print msg
-        wifi_mon.remove_mon_iface(iface)
-        os.system('service network-manager restart')
-        print '\n['+R+'!'+W+'] Disabling monitor mode due to error'
         sys.exit(0)
