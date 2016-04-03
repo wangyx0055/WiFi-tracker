@@ -24,6 +24,7 @@ import fcntl
 import probe_scan
 import psycopg2
 import sys
+import manuf
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow (also QWidget can be used); Window is an object
@@ -34,10 +35,18 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 								#everytime a window object is made the init method runs; Core of the application is in __init__
 		
 		super(Window, self).__init__()				#Super returnd parent object (which is QMainWindow);  () - Empty parameter
-		self.setGeometry(50, 50, 1000, 700)			#Set the geometry of the window. (starting X; starting Y; width; length)
+		self.setGeometry(50, 50, 1100, 700)			#Set the geometry of the window. (starting X; starting Y; width; length)
 		self.setWindowTitle("Wifi Probe Scanner Project")		#Set title of the window (Window name)
 		self.setWindowIcon(QtGui.QIcon('itb.png'))		#Set the image in the window name (doesn't seem to work in Linux)
-
+		
+		pic = QtGui.QLabel(self)
+		pic.setGeometry(650,50,500,500)
+		#use full ABSOLUTE path to the image, not relative
+		pic.setPixmap(QtGui.QPixmap(os.getcwd() + "/python.jpg"))
+		frame = QtGui.QGroupBox(self)    
+		frame.setTitle("Google Map")
+		frame.setGeometry(650,25,500,500)
+		
 	# ===== Main Menu ===== 
 									#Menu Choices
 		monitorMode = QtGui.QAction("& Enable Monitor Mode", self)	#Defines action for Wi-Fi Monitor Mode
@@ -66,16 +75,32 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		plotMap.setStatusTip("Generate maps")		#Information shown in the status bar 
 		plotMap.triggered.connect(self.mapplot)		#Calls the method for generating html
 		
+		updmanuf = QtGui.QAction("& Update oui file", self)	#Defines action for truncating tables
+		updmanuf.setShortcut("Ctrl+M")			#Sets shortcut for action
+		updmanuf.setStatusTip("Update oui file")		#Information shown in the status bar 
+		updmanuf.triggered.connect(self.manufUpdate)		#Calls the method for truncating tables
+		
+		disable = QtGui.QAction("& Disable Monitor mode", self)	#Defines action for truncating tables
+		updmanuf.setShortcut("Ctrl+S")			#Sets shortcut for action
+		updmanuf.setStatusTip("Disabling monitor mode")		#Information shown in the status bar 
+		updmanuf.triggered.connect(self.disable_monitor)		#Calls the method for truncating tables
+		
+		
 		self.statusBar()					#Calls the status bar (to show setStatusTip), nothing else is needed!
 		
 									#Main Menu
+									
 		mainMenu = self.menuBar()				#menuBar object is assigned to mainMenu, because we will need to modify it/add to it
 		fileMenu = mainMenu.addMenu('&Menu')			#Defines one line of menu and assigne it a name
 		fileMenu.addAction(monitorMode)				#Adds action to the menu line - Wi-Fi Monitor Mode
 		fileMenu.addAction(launchScan)				#Adds action to the menu line - Scanning Probes
+		fileMenu.addAction(plotMap)				#Adds action to the menu line - generate map	
+		fileMenu.addAction(disable)				#Adds action to the menu line - generate map	
 		fileMenu.addAction(quitAction)				#Adds action to the menu line - Exit Application	
-		fileMenu.addAction(cleardb)
-		fileMenu.addAction(plotMap)				#Adds action to the menu line - Exit Application	
+		
+		fileMenu2 = mainMenu.addMenu('&Options')
+		fileMenu2.addAction(cleardb)				#Adds action to the menu line - Clear DB
+		fileMenu2.addAction(updmanuf)				#Adds action to the menu line - Clear DB
 		
 		self.home()						#Refers to the next method
 
@@ -89,18 +114,18 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		btn1.clicked.connect(self.wifi_monitor)			#Defines an event (through .connect), event is Monitor Mode
 
 		btn1.resize(180, 40)					#Defines the size of the button (width; length) or PyQt suggest minimum size btn1.minimumSizeHint()
-		btn1.move(50, 50)					#Defines location of the button on the screen (starting X; starting Y)
+		btn1.move(25, 50)					#Defines location of the button on the screen (starting X; starting Y)
 									
 		
 									#Button for Scanning Probes
 		self.progress = QtGui.QProgressBar(self)
-		self.progress.setGeometry(50, 350, 600, 20)
+		self.progress.setGeometry(50, 620, 1100, 20)
 		
 		btn2 = QtGui.QPushButton("Launch Probe Scan", self)	#Defines a button with parameter name
 		btn2.clicked.connect(self.probe_scan)			#Defines an event (through .connect), event is Scanning Probes
 
 		btn2.resize(180, 40)					#Defines the size of the button (width; length)
-		btn2.move(50, 120)					#Defines location of the button on the screen (starting X; starting Y)
+		btn2.move(25, 120)					#Defines location of the button on the screen (starting X; starting Y)
 
 
 									#Button for Exit Application
@@ -108,21 +133,20 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		btn3.clicked.connect(self.close_application)		#Defines an event (through .connect), event is Close Application
 
 		btn3.resize(180, 40)					#Defines the size of the button (width; length)
-		btn3.move(50, 260)					#Defines location of the button on the screen (starting X; starting Y)
+		btn3.move(25, 260)					#Defines location of the button on the screen (starting X; starting Y)
 
 									#Button to generate maps from probes
-		btn4 = QtGui.QPushButton("Generate maps", self)	#Defines a button with parameter name (!!! WHY PASS SELF ???)
-		btn4.clicked.connect(self.mapplot)			#Defines an event (through .connect), event is Monitor Mode
+		btn4 = QtGui.QPushButton("Disable Monitor mode", self)	#Defines a button with parameter name (!!! WHY PASS SELF ???)
+		btn4.clicked.connect(self.disable_monitor)			#Defines an event (through .connect), event is Monitor Mode
 
 		btn4.resize(180, 40)					#Defines the size of the button (width; length) or PyQt suggest minimum size btn1.minimumSizeHint()
-		btn4.move(50, 190)					#Defines location of the button on the screen (starting X; starting Y)
+		btn4.move(25, 190)					#Defines location of the button on the screen (starting X; starting Y)
 
-											#Button for Exit Application
-		btn5 = QtGui.QPushButton("Clear Database", self)	#Defines a button with parameter name
-		btn5.clicked.connect(self.clear_db)		#Defines an event (through .connect), event is Close Application
+		btn5 = QtGui.QPushButton("Generate maps", self)	#Defines a button with parameter name (!!! WHY PASS SELF ???)
+		btn5.clicked.connect(self.mapplot)			#Defines an event (through .connect), event is Monitor Mode
 
-		btn5.resize(180, 40)					#Defines the size of the button (width; length)
-		btn5.move(260, 50)					#Defines location of the button on the screen (starting X; starting Y)
+		btn5.resize(500, 50)					#Defines the size of the button (width; length) or PyQt suggest minimum size btn1.minimumSizeHint()
+		btn5.move(650, 550)					#Defines location of the button on the screen (starting X; starting Y)
 
 				
 		self.show()						#Shows the application in the end (call the graphics from memory and display it)
@@ -153,23 +177,26 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 	
 	def mapplot(self):
 		web_page = QWebView(self)
-		web_page.setGeometry(450,50,500,500)
+		web_page.setGeometry(650,50,500,500)
 		web_page.load(QUrl("file:///var/www/html/mymap7.html"))
 		web_page.show()									
 		
 	def close_application(self):					#Method for closing application
 										#Pop up question box with yes/no option; parameters: self, Wwindow title, Question, Yes or No
-		choice = QtGui.QMessageBox.question(self, "Exit Application", "Would you like to exit the application and Disable Monitor Mode?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+		choice = QtGui.QMessageBox.question(self, "Exit Application", "Do you want to exit the application?", QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 		if choice == QtGui.QMessageBox.Yes:			#if/else statement - if yes
-			print("Disabling monitor mode.")	#Sends a message before quiting (in cmd & loggs)
-			ifacemon = str(iface + 'mon')
+			sys.exit()					#Exit everything				
+		else:							#if/else statement - else (No)
+			pass		
+						#pass - nothing happens
+	def disable_monitor(self):
+		try:
 			wifi_mon.remove_mon_iface(iface)
 			os.system('service network-manager restart')
 			QtGui.QMessageBox.information(self, "Disabling Monitor Mode", "Disabled Monitor mode on %s"% (iface,))
-			sys.exit()					#Exit everything				
-		else:							#if/else statement - else (No)
-			pass						#pass - nothing happens
-
+		except Exception, msg:
+			print msg
+			
 	def clear_db(self):
 		con = psycopg2.connect(database='wifi', user='probecap', host = 'localhost', password='pass')
 		con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
@@ -181,7 +208,15 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 			print 'Error %s' % e    
 		cur.close()
 		con.close()
-
+		
+	def manufUpdate(self):
+		try:
+			updateoui = manuf.MacParser()
+			updateoui.refresh()
+			QtGui.QMessageBox.information(self, "Updating oui file", "OUI Database file is updated")
+		except Exception, msg:
+			print msg
+	
 monitors, interfaces = wifi_mon.iwconfig()
 iface = wifi_mon.get_iface(interfaces)
 #with open('dbconf.json') as fin:

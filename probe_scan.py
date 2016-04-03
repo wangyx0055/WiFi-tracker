@@ -34,10 +34,6 @@ WLAN_MGMT_ELEMENT = "<BB"
 TO_DS_BIT = 2**9
 FROM_DS_BIT = 2**10
 
-def Manufupdate(self):
-    updateoui = manuf.MacParser()
-    updateoui.refresh()
-
 def encodeMac(s):
     return ''.join(( '%.2x' % ord(i) for i in s ))
 
