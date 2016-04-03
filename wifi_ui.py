@@ -30,7 +30,7 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 								#everytime a window object is made the init method runs; Core of the application is in __init__
 		
 		super(Window, self).__init__()				#Super returnd parent object (which is QMainWindow);  () - Empty parameter
-		self.setGeometry(50, 50, 500, 300)			#Set the geometry of the window. (starting X; starting Y; width; length)
+		self.setGeometry(50, 50, 800, 350)			#Set the geometry of the window. (starting X; starting Y; width; length)
 		self.setWindowTitle("Wifi Probe Scanner Project")		#Set title of the window (Window name)
 		self.setWindowIcon(QtGui.QIcon('itb.png'))		#Set the image in the window name (doesn't seem to work in Linux)
 
@@ -46,11 +46,15 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		launchScan.setStatusTip("Start Wi-Fi Scan")		#Information shown in the status bar (doesn't work in the linux)
 		launchScan.triggered.connect(self.probe_scan)		#Calls the method for scanning probes
 
-
 		quitAction = QtGui.QAction("& Exit Application", self)	#Defines action
 		quitAction.setShortcut("Ctrl+Q")			#Sets shortcut for action
 		quitAction.setStatusTip("Terminate the Application")	#Information shown in the status bar (doesn't work in the linux)
 		quitAction.triggered.connect(self.close_application)	#Calls the method for closing the application
+		
+		plotMap = QtGui.QAction("& Generate maps from probes", self)	#Defines action for Plotting maps
+		plotMap.setShortcut("Ctrl+G")			#Sets shortcut for action
+		plotMap.setStatusTip("Generate maps")		#Information shown in the status bar 
+		plotMap.triggered.connect(self.mapplot)		#Calls the method for generating html
 		
 		self.statusBar()					#Calls the status bar (to show setStatusTip), nothing else is needed!
 		
@@ -60,6 +64,7 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		fileMenu.addAction(monitorMode)				#Adds action to the menu line - Wi-Fi Monitor Mode
 		fileMenu.addAction(launchScan)				#Adds action to the menu line - Scanning Probes
 		fileMenu.addAction(quitAction)				#Adds action to the menu line - Exit Application	
+		fileMenu.addAction(plotMap)				#Adds action to the menu line - Exit Application	
 		
 		self.home()						#Refers to the next method
 
@@ -89,22 +94,30 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		btn3.clicked.connect(self.close_application)		#Defines an event (through .connect), event is Close Application
 
 		btn3.resize(180, 40)					#Defines the size of the button (width; length)
-		btn3.move(50, 190)					#Defines location of the button on the screen (starting X; starting Y)
+		btn3.move(50, 260)					#Defines location of the button on the screen (starting X; starting Y)
 
+									#Button to generate maps from probes
+		btn4 = QtGui.QPushButton("Generate maps", self)	#Defines a button with parameter name (!!! WHY PASS SELF ???)
+		btn4.clicked.connect(self.mapplot)			#Defines an event (through .connect), event is Monitor Mode
 
-	
+		btn4.resize(180, 40)					#Defines the size of the button (width; length) or PyQt suggest minimum size btn1.minimumSizeHint()
+		btn4.move(50, 190)					#Defines location of the button on the screen (starting X; starting Y)
+
+		
+		
 		self.show()						#Shows the application in the end (call the graphics from memory and display it)
 
 
 	# ===== Methods ===== 
 	
 	def wifi_monitor(self):						#Method for closing application
-		try: 
-			startmon = wifi_mon.start_mon_mode(iface) 
+		try:
+			startmon = wifi_mon.start_mon_mode(iface)
 			QtGui.QMessageBox.information(self, "Enabling Monitor Mode", "Monitor mode started on strongest interface %s"% (iface))
-		except:
-			QtGui.QMessageBox.information(self, "Enabling Monitor Mode", "No wireless interfaces found, bring one up and try again")
+		except Exception, msg:
+			QtGui.QMessageBox.information(self, "Enabling Monitor Mode", "Enabling monitor mode failed due to error: %s" % (msg,))
 	
+					
 	def probe_scan(self):						#Method for closing application
 		choice = QtGui.QMessageBox.question(self, "Start sniffing", "Start collecting probes on interface %s?"% (iface), QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 		if choice == QtGui.QMessageBox.Yes:			#if/else statement - if yes
@@ -115,7 +128,9 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 			sniff(iface=iface,prn=startscan,store=0,timeout=300)
 		else:							#if/else statement - else (No)
 			pass						#pass - nothing happens
-
+	
+	def mapplot(self):
+		pass
 		
 	def close_application(self):					#Method for closing application
 										#Pop up question box with yes/no option; parameters: self, Wwindow title, Question, Yes or No
