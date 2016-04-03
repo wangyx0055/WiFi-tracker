@@ -21,6 +21,9 @@ import socket
 import struct
 import fcntl
 import probe_scan
+import psycopg2
+import sys
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow (also QWidget can be used); Window is an object
 
@@ -51,6 +54,12 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		quitAction.setStatusTip("Terminate the Application")	#Information shown in the status bar (doesn't work in the linux)
 		quitAction.triggered.connect(self.close_application)	#Calls the method for closing the application
 		
+		cleardb = QtGui.QAction("& Clear database from records", self)	#Defines action for truncating tables
+		cleardb.setShortcut("Ctrl+D")			#Sets shortcut for action
+		cleardb.setStatusTip("Clear database")		#Information shown in the status bar 
+		cleardb.triggered.connect(self.clear_db)		#Calls the method for truncating tables
+		
+		
 		plotMap = QtGui.QAction("& Generate maps from probes", self)	#Defines action for Plotting maps
 		plotMap.setShortcut("Ctrl+G")			#Sets shortcut for action
 		plotMap.setStatusTip("Generate maps")		#Information shown in the status bar 
@@ -64,6 +73,7 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		fileMenu.addAction(monitorMode)				#Adds action to the menu line - Wi-Fi Monitor Mode
 		fileMenu.addAction(launchScan)				#Adds action to the menu line - Scanning Probes
 		fileMenu.addAction(quitAction)				#Adds action to the menu line - Exit Application	
+		fileMenu.addAction(cleardb)
 		fileMenu.addAction(plotMap)				#Adds action to the menu line - Exit Application	
 		
 		self.home()						#Refers to the next method
@@ -79,9 +89,12 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 
 		btn1.resize(180, 40)					#Defines the size of the button (width; length) or PyQt suggest minimum size btn1.minimumSizeHint()
 		btn1.move(50, 50)					#Defines location of the button on the screen (starting X; starting Y)
-
-
+									
+		
 									#Button for Scanning Probes
+		self.progress = QtGui.QProgressBar(self)
+		self.progress.setGeometry(50, 160, 180, 20)
+		
 		btn2 = QtGui.QPushButton("Launch Probe Scan", self)	#Defines a button with parameter name
 		btn2.clicked.connect(self.probe_scan)			#Defines an event (through .connect), event is Scanning Probes
 
@@ -97,14 +110,22 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		btn3.move(50, 260)					#Defines location of the button on the screen (starting X; starting Y)
 
 									#Button to generate maps from probes
+		self.progress2 = QtGui.QProgressBar(self)
+		self.progress2.setGeometry(50, 230, 180, 20)
 		btn4 = QtGui.QPushButton("Generate maps", self)	#Defines a button with parameter name (!!! WHY PASS SELF ???)
 		btn4.clicked.connect(self.mapplot)			#Defines an event (through .connect), event is Monitor Mode
 
 		btn4.resize(180, 40)					#Defines the size of the button (width; length) or PyQt suggest minimum size btn1.minimumSizeHint()
 		btn4.move(50, 190)					#Defines location of the button on the screen (starting X; starting Y)
 
-		
-		
+											#Button for Exit Application
+		btn5 = QtGui.QPushButton("Clear Database", self)	#Defines a button with parameter name
+		btn5.clicked.connect(self.clear_db)		#Defines an event (through .connect), event is Close Application
+
+		btn5.resize(180, 40)					#Defines the size of the button (width; length)
+		btn5.move(260, 50)					#Defines location of the button on the screen (starting X; starting Y)
+
+				
 		self.show()						#Shows the application in the end (call the graphics from memory and display it)
 
 
@@ -122,6 +143,10 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		choice = QtGui.QMessageBox.question(self, "Start sniffing", "Start collecting probes on interface %s?"% (iface), QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
 		if choice == QtGui.QMessageBox.Yes:			#if/else statement - if yes
 			print("Starting probes collection")	#Sends a message before quiting (in cmd & loggs)
+			self.completed = 0
+			while self.completed < 100:
+				self.completed += 0.0001
+				self.progress.setValue(self.completed)
 			conf = json.load(open(conf.json))
 			handler = probe_scan.Handler(conf)                
 			startscan = probe_scan.Handler(conf)
@@ -130,7 +155,11 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 			pass						#pass - nothing happens
 	
 	def mapplot(self):
-		pass
+		self.completed = 0
+		while self.completed < 100:
+			self.completed += 0.0001
+			self.progress2.setValue(self.completed)
+		pass	
 		
 	def close_application(self):					#Method for closing application
 										#Pop up question box with yes/no option; parameters: self, Wwindow title, Question, Yes or No
@@ -145,9 +174,21 @@ class Window(QtGui.QMainWindow):				#Application inherit from QtGui.QMainWindow 
 		else:							#if/else statement - else (No)
 			pass						#pass - nothing happens
 
+	def clear_db(self):
+		con = psycopg2.connect(database='wifi', user='probecap', host = 'localhost', password='pass')
+		con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+		cur = con.cursor()
+		try:
+			cur.execute('TRUNCATE TABLE station, ssid, probe;')
+			QtGui.QMessageBox.information(self, "Clearing Database", "Tables truncated")
+		except psycopg2.DatabaseError, e:
+			print 'Error %s' % e    
+		cur.close()
+		con.close()
 
 monitors, interfaces = wifi_mon.iwconfig()
 iface = wifi_mon.get_iface(interfaces)
+
 	
 	
 def run():							# Main Running Method (Function) - run()
